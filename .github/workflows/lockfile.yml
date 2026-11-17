@@ -1,0 +1,62 @@
+# Regenerate `package-lock.json` on Linux, and hand it back as an artifact.
+#
+# ── Why a workflow and not a command ───────────────────────────────────────────────────────
+#
+# npm resolves optional, platform-specific dependencies for the machine it runs on and prunes the
+# rest out of the lockfile. This repo is developed on Windows and built on Linux, so an ordinary
+# `npm install` here deletes the Linux-only entries the build needs, and the next `npm ci` on a
+# runner fails with "Missing: @emnapi/runtime from lock file" — a broken lockfile announcing itself
+# as a build that stopped before it started. `scripts/check-lockfile.mjs` has the whole story.
+#
+# `npm run lock` solves it with a Linux container, which needs Docker running. This solves it on
+# the same Linux and the same Node the build actually uses, which needs nothing at all — and is
+# the one environment where "it resolved here" means "it will resolve there".
+#
+# ── Pushed, not dispatched ─────────────────────────────────────────────────────────────────
+#
+# `workflow_dispatch` only offers workflows that are already on the default branch, which is no
+# use for the change that introduces one. A branch prefix is triggerable the moment it is pushed.
+#
+#     git switch -c lockfile/whatever && git push -u origin lockfile/whatever
+#     gh run watch && gh run download --name package-lock
+#
+# It writes nothing back: the lockfile arrives as an artifact and a person commits it, having
+# looked. A workflow that pushes to its own branch is a workflow that can rewrite a dependency
+# tree while nobody is reading.
+name: lockfile
+
+on:
+  push:
+    branches: ["lockfile/**"]
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The version CI and Vercel build with. Generating on a different major produced a lockfile
+      # whose `npm ci` passed there and was refused here — same file, different resolver.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # A **full** install. `--package-lock-only` prunes, which is the exact bug this is here to
+      # avoid, and is how it was twice "fixed" without being fixed.
+      #
+      # `--ignore-scripts` because nothing needs building to resolve a tree, and a postinstall on a
+      # runner that then commits its output is a supply chain this repo does not need.
+      - name: install
+        run: npm install --ignore-scripts
+
+      - name: the lockfile is installable on Linux
+        run: node scripts/check-lockfile.mjs
+
+      - name: what changed
+        run: git --no-pager diff --stat package-lock.json || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-lock
+          path: package-lock.json
+          retention-days: 7

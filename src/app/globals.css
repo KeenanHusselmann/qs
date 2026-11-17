@@ -1,0 +1,426 @@
+/**
+ * Design tokens — PLATFORM.md §7.2.
+ *
+ * The values are requirements, not suggestions: §7 opens with "where this file and a design mockup
+ * disagree, this file wins", and this is that file made executable.
+ *
+ * Only what the login screen uses is here. The rest arrives with the screens that need it, so
+ * nothing sits in the stylesheet unused and unverified.
+ */
+
+@import "tailwindcss";
+
+:root {
+  /* Neutrals */
+  /*
+    Round-3 testing: "make the colours sharper". The same cool greys, a step darker from 100 to
+    800 – hairlines that read as edges rather than as tints, and secondary text that holds its own
+    beside the primary. The hues, the accent and the status colours are untouched, so nothing on
+    the platform changes meaning; it only reads more crisply.
+  */
+  --n-0: #ffffff;
+  --n-25: #fcfcfd;
+  --n-50: #f7f8fa;
+  --n-100: #eceef2;
+  --n-200: #d8dce3;
+  --n-300: #b9bfc9;
+  --n-400: #838c99;
+  --n-500: #5a6371;
+  --n-600: #3f4753;
+  --n-700: #282e37;
+  --n-800: #1a1f26;
+  --n-900: #14181e;
+
+  /*
+    Accent — the practice's green, deepened until it can carry text.
+
+    ── Why this stopped being blue ─────────────────────────────────────────────────────────
+
+    It was a deep slate-blue, chosen to be serious and to print legibly, and it still would be.
+    But the mark is green, the stage bands are green, and a product whose every button, link,
+    active row and focus ring is blue is a product wearing somebody else's colour. Two accent
+    hues also meant two answers to "what does a primary action look like here".
+
+    So there is one accent, and it is green. Nothing else changed: every step keeps the role and
+    roughly the lightness of the blue it replaces, so no component had to be re-tuned — the button
+    was 5.17:1 against white and is 5.31:1, the link text was 6.9:1 and is 7.0:1. Measured, not
+    matched by eye.
+
+    ── It is not the same green as "approved" ──────────────────────────────────────────────
+
+    §7.1 #5 gives colour one meaning, and `--ok-*` means signed off. That family is a blue-green at
+    150°; this is a yellow-green at 92°, a hue the mark itself sits in at 85°. They read as
+    different colours side by side, and the accent never appears on a state badge — the one place
+    the two could be confused.
+  */
+  --a-50: #f1f7e9;
+  --a-100: #ddedc8;
+  /* The hover border on a card that is a link: `--a-100` is too faint to read as a state change
+     and `--a-500` reads as selected. §7.2 declares this step for exactly that gap. */
+  --a-300: #a3cd72;
+  --a-500: #4a7722;
+  --a-600: #3d631c;
+  --a-700: #2e4b15;
+
+  /*
+    Brand — Mzilikazi's own green, and the three steps of it this interface uses.
+
+    ── Where the number came from ──────────────────────────────────────────────────────────
+
+    Sampled from `public/mzi-logo.png`, not picked by eye: 129,853 of its pixels are one flat
+    value, `#8dc63f`. That is `--brand-500`, and it is the mark's colour exactly. It is also far
+    too light and too saturated to carry text, so the two darker steps hold the same hue (85°) at
+    lower lightness — `--brand-800` measures 7.6:1 against white, comfortably past AA.
+
+    ── It is not a fourth semantic colour ──────────────────────────────────────────────────
+
+    §7.1 #5 gives colour exactly one meaning, and green already has one: `--ok-*` is approved and
+    complete. This does not compete with it. `--ok-500` is a blue-green at 150°; the brand is a
+    yellow-green at 85°, and the two are not mistakable side by side. More to the point, the brand
+    green is **structural chrome** — it bands the header of every stage panel identically, whatever
+    state that stage is in — so it cannot be read as a state. A badge or a bar would be a different
+    matter and would be wrong.
+  */
+  /*
+    `--brand-500` is the mark's own colour and it is used as the mark's own colour: the stage bands
+    wear it undiluted, with near-black text on them. The first attempt put white on it, which
+    measures 2.04:1 and is unreadable — the fix for that was never to darken the green, it was to
+    stop putting white on a light surface.
+
+    `--brand-600` exists because a filled button needs white and white needs 4.5:1. `--brand-700`
+    was the obvious candidate and fails at 4.04:1, so the step below it is the one that qualifies,
+    at 5.27:1, with `--brand-800` its hover at 7.61:1. That step is a contrast requirement wearing
+    a scale's clothing, not a designer's preference.
+  */
+  --brand-500: #8dc63f;
+  --brand-600: #536e23;
+  --brand-700: #5d8a29;
+  --brand-800: #3f5c1c;
+
+  /*
+    Semantic. §7.2 fixes what each one means — never improvise a new meaning.
+
+    ── The ok and warn families were being used and were not here ──────────────────────────
+    Thirty-nine references to `--ok-*` and thirty-six to `--warn-*` across the run panel, the
+    checklist, the chain badges and the import window — every "Signed off", every "Waiting", every
+    amber refusal. An undefined custom property makes its declaration invalid at computed-value
+    time, so `color: var(--ok-700)` is dropped and the text simply inherits: the platform's approved
+    green and its needs-attention amber were rendering as ordinary body grey, in exactly the places
+    §7.1 #5 relies on state being legible at a glance.
+
+    Nothing caught it. Seventeen browser suites assert on text, and this defect has no text — which
+    is why `globals.test.ts` now fails on a token referenced and not defined.
+  */
+  --ok-50: #e9f7ef;
+  --ok-500: #1f8a4c;
+  --ok-700: #166638;
+  --warn-50: #fdf4e3;
+  --warn-500: #b57d13;
+  --warn-700: #8a5f0e;
+  --err-50: #fdeceb;
+  --err-500: #c93b34;
+  --err-700: #9c2d27;
+
+  /*
+    ── The advisor's blue, and what it means ───────────────────────────────────────────────
+
+    §7.1 #5 gives colour exactly one meaning, so a new hue has to answer what it means before it
+    is allowed. This one means **the machine is speaking**: it is worn only by the advisor, the
+    single surface in the platform whose words come from a language model rather than from a
+    document somebody signed. Nothing else may use it, and it never appears on a state badge.
+
+    That distinction is worth a colour precisely because of the no-figures rule the advisor lives
+    under. Everywhere else on a project screen, a number traces to a document; the advisor's
+    counsel traces to a model. A reader should be able to see which they are looking at without
+    reading the panel's title.
+
+    It is the slate-blue §7.2 originally specified as the accent, before the accent moved to the
+    practice's own green. Reusing that family keeps it inside the design system's vocabulary
+    rather than being a fourth opinion about what blue is, and its ratios are already known.
+
+    Measured, as every colour decision on this branch is:
+
+      white on --ai-500                        5.17:1
+      white on --ai-600 (hover)                7.07:1
+      --ai-500 against the --n-50 canvas       4.87:1   (the tab's own edge)
+      --ai-500 against a white panel           5.17:1
+
+    The tab it replaces was a white surface with an --n-200 hairline on the --n-50 canvas, which
+    measures 1,19:1 — the label was always legible at 11,31:1 and the *tab* was not findable. That
+    was the actual complaint, and a filled surface is what answers it.
+  */
+  --ai-50: #eef4fb;
+  --ai-500: #2f6fb5;
+  --ai-600: #255a94;
+  --ai-700: #1c4472;
+
+  /* Radius — small. This is a financial instrument, not a consumer app. */
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 8px;
+  /* §7.2's fourth radius. Declared when the first thing needed it — a progress bar's track and its
+     fill, which want a pill rather than a rounded rectangle. `globals.test.ts` is what noticed it
+     was missing: an undeclared custom property makes its whole declaration invalid at computed-value
+     time, so the bar would simply have had square ends and nothing would have said so. */
+  --r-full: 999px;
+
+  /* Elevation — sparingly. §7.2 prefers borders to shadows for structure. */
+  --e-1: 0 1px 2px rgba(20, 24, 30, 0.06);
+  --e-2: 0 2px 8px rgba(20, 24, 30, 0.08);
+
+  /* Motion — nothing longer than 200ms. */
+  --m-fast: 60ms;
+  --m-base: 150ms;
+  --m-slow: 200ms;
+
+  /* Layout — §7.3 */
+  --topbar-h: 56px;
+  --sidebar-w: 240px;
+  --sidebar-collapsed-w: 56px;
+  --drawer-w: 480px;
+
+  /* Z-index — §7.2 */
+  --z-sticky: 10;
+  --z-dropdown: 100;
+  --z-drawer: 200;
+}
+
+@theme inline {
+  --color-n-0: var(--n-0);
+  --color-n-25: var(--n-25);
+  --color-n-50: var(--n-50);
+  --color-n-100: var(--n-100);
+  --color-n-200: var(--n-200);
+  --color-n-300: var(--n-300);
+  --color-n-400: var(--n-400);
+  --color-n-500: var(--n-500);
+  --color-n-600: var(--n-600);
+  --color-n-700: var(--n-700);
+  --color-n-800: var(--n-800);
+  --color-n-900: var(--n-900);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-a-50: var(--a-50);
+  --color-ai-500: var(--ai-500);
+  --color-ai-600: var(--ai-600);
+  --color-a-500: var(--a-500);
+  --color-a-600: var(--a-600);
+  --color-a-700: var(--a-700);
+  --color-err-50: var(--err-50);
+  --color-err-500: var(--err-500);
+  --color-err-700: var(--err-700);
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Type scale — §7.2. Never below 11px anywhere; never below 13px for anything read repeatedly. */
+.t-xs {
+  font-size: 11px;
+  line-height: 16px;
+}
+.t-sm {
+  font-size: 12px;
+  line-height: 16px;
+}
+.t-base {
+  font-size: 13px;
+  line-height: 18px;
+}
+.t-md {
+  font-size: 14px;
+  line-height: 20px;
+}
+.t-lg {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+}
+.t-xl {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+/*
+  §7.2 names this size for exactly one thing — KPI numbers — and the dashboard is the first screen
+  in the platform to have any. Nothing else should be set at 28px: the scale is a scale, and a
+  heading that borrows the KPI size stops the figure being the biggest thing on the page.
+*/
+.t-2xl {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+}
+
+/*
+  Figures that line up — §7.2, "All numerics: font-variant-numeric: tabular-nums".
+
+  Twenty-four elements carry this class and it was defining nothing, so every column of money in
+  the platform was set in proportional figures: a 1 is narrower than a 7, and a column of rands
+  reads as a ragged edge that a QS cannot scan down. Inter has real tabular figures, which is why
+  §7.2 requires it by name.
+
+  Alignment is **not** here. §7.2 asks for right alignment on numerics and this class is also worn
+  by things that are not columns — a token count in a footer, a figure inside a sentence — where
+  `text-align` would either do nothing or do the wrong thing. A numeric *column* says so itself.
+*/
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  A dialog is modal, or it is not shown. There is no third state.
+
+  ── Why this is a CSS rule and not another guard in a component ────────────────────────────
+
+  `<dialog open>` without `showModal()` is a *non-modal* dialog: it lays out in the normal document
+  flow, paints no backdrop, leaves the page behind it live, and scrolls with the page. It was
+  reported three times as "the modal is on top of the projects page", and the tell every time was
+  that nothing behind it was dimmed.
+
+  It was chased twice in `new-project-dialog.tsx` — first a render effect, which never ran because
+  the bad state arrives without a render; then a MutationObserver, which does hold. Both are
+  JavaScript, and every route to this state is a route where the JavaScript is the thing that went
+  wrong: a hot reload that replaced the element and reconciled `open` onto it while the browser
+  dropped the top-layer entry, a hydration that did not finish, a bundle that is stale.
+
+  A style rule needs none of that to be working. Nothing in this application ever calls `.show()` —
+  every dialog here is `showModal()` or shut — so "not modal" means "should not be on screen", and
+  saying so once in CSS closes the state for every dialog in the app, permanently, including the
+  ones nobody has written yet.
+
+  The observer in the component stays: this hides the wrong state, and that one repairs it.
+*/
+dialog:not(:modal) {
+  display: none;
+}
+
+body {
+  background: var(--n-0);
+  color: var(--n-700);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* §7.8 — visible focus on every interactive element: 2px accent, 2px offset. */
+:focus-visible {
+  outline: 2px solid var(--a-500);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/*
+  Spinners keep their own compositor layer.
+
+  A rotating inline SVG is not reliably composited, and when it is not, its rotation runs on the
+  main thread — the same thread reading a 22 MB file and re-rendering fifty-nine rows. That is what
+  a spinner "not doing steady rotations" is: the animation competing with the work it reports on.
+  Measured on one row with one large file, frame gaps went from 6ms to 12ms median and 25ms at p95
+  the moment upload progress started arriving.
+
+  `will-change` promotes it so the compositor keeps turning it whatever else is happening, and
+  `transform-origin` is stated rather than assumed — it is what centres the rotation, and a spinner
+  turning about any other point wobbles rather than spins.
+*/
+.animate-spin {
+  will-change: transform;
+  transform-origin: 50% 50%;
+}
+
+/* §7.2 — respect prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /*
+    A looping indicator is the exception, and this is not the preference being overridden — it is
+    the blanket rule being wrong for this one shape.
+
+    `animation-duration: 0.01ms` ends a *finite* animation instantly, which is the intent. On an
+    `infinite` one it does the opposite of removing motion: the spinner completes a full rotation
+    every hundredth of a millisecond, so every painted frame samples an arbitrary angle and it
+    strobes. Measured under `prefers-reduced-motion: reduce`: `1e-05s`, `infinite`. That is what
+    "the spinner is glitchy, it is not rotating steadily" is, and it is worse than the animation
+    the preference was asking to be spared.
+
+    An earlier pass read the same symptom as a compositing problem and promoted the layer, which is
+    sound for its own reasons and is kept — but it was not this.
+
+    WCAG 2.3.3 governs animation that is decoration. A progress indicator is feedback: it is the
+    only thing on screen saying the import is still running. So it keeps turning, slower and
+    steadily — genuinely less motion than the default, which is what was actually asked for.
+  */
+  .animate-spin {
+    animation-duration: 2.4s !important;
+  }
+
+  /*
+    The assistant's thinking dots are the same kind of indicator and failed the same way: measured
+    at `1e-05s`, `infinite`, they froze on one frame and flickered. They keep pulsing, slower, and
+    without the growth — opacity only, which is the least motion that still says "working".
+  */
+  .thinking-dot {
+    animation-name: thinking-fade !important;
+    animation-duration: 1.8s !important;
+  }
+}
+
+/*
+  The assistant is thinking: three dots in a soft wave.
+
+  It was Tailwind's `animate-bounce`, which moves an element by a quarter of its own height — on a
+  6px dot that is 1.5px, too little to read as motion and just enough to read as jitter. This fades
+  and grows each dot in turn, which is what an assistant's "thinking" looks like everywhere else.
+  Opacity and transform only, so it stays on the compositor while the page does real work.
+*/
+@keyframes thinking-wave {
+  0%,
+  70%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.75);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes thinking-fade {
+  0%,
+  70%,
+  100% {
+    opacity: 0.3;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+.thinking-dot {
+  animation: thinking-wave 1.3s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/*
+  Totals – what a table adds up to, stated so it cannot be missed (round-3 testing: "make the
+  totals more noticeable"). One treatment everywhere a table ends in a total: a heavy rule above,
+  the accent's lightest tint behind, and the figures at full weight in the darkest ink. Unlayered,
+  so it outranks the weight a cell sets for itself.
+*/
+.total-row {
+  border-top: 2px solid var(--n-800);
+  background: var(--a-50);
+}
+.total-row td,
+.total-row .num {
+  font-weight: 700;
+  color: var(--n-900);
+}

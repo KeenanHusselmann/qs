@@ -1,0 +1,2 @@
+CREATE TYPE "public"."project_status" AS ENUM('estimating', 'tendering', 'in_contract', 'final_account', 'closed', 'archived');--> statement-breakpoint
+ALTER TABLE "projects" ADD COLUMN "status" "project_status" DEFAULT 'estimating' NOT NULL;

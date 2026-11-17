@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# Refuse a direct push to `platform`.
+#
+# ── Why this exists at all ────────────────────────────────────────────────────────────────
+#
+# Branch protection needs a paid plan on a private repository and the API refuses to set it, so
+# nothing on GitHub's side stops a push to the branch everyone else pulls. CI reports; it cannot
+# block. This is the only guard that can be in the way at the moment it matters.
+#
+# It is not security. `--no-verify` goes straight past it and the message below says so. It is here
+# so that pushing to `platform` is a *decision* rather than the thing that happens when somebody
+# forgets to branch — which is a mistake worth catching, because one person deploys from their own
+# working directory and an unreviewed commit on `platform` ships the next time they do.
+#
+# ── The message is the point ──────────────────────────────────────────────────────────────
+#
+# A refusal that only says no leaves somebody with commits they are now frightened of. §7.7: errors
+# say what to do next. So it prints the three lines that move the work onto a branch and put
+# `platform` back, which is the whole recovery and loses nothing.
+
+protected_ref="refs/heads/platform"
+
+# stdin: <local ref> <local sha> <remote ref> <remote sha>, one line per ref being pushed.
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ "$remote_ref" = "$protected_ref" ] || continue
+
+  cat >&2 <<'REFUSAL'
+
+  ─────────────────────────────────────────────────────────────────────────────────
+  Refusing to push straight to platform.
+
+  Every change here goes through a pull request: the gate runs there, and one person
+  deploys from their own working directory — so a commit that lands on platform
+  without review is a commit that ships the next time they deploy.
+
+  Your commits are safe. To move them onto a branch of their own:
+
+      git switch -c short-name          # takes your commits with it
+      git push -u origin short-name
+      gh pr create --base platform
+
+  Then put platform back where everyone else has it:
+
+      git switch platform
+      git reset --hard origin/platform
+
+  CONTRIBUTING.md has the rest. If you genuinely mean to push to platform:
+
+      git push --no-verify
+  ─────────────────────────────────────────────────────────────────────────────────
+
+REFUSAL
+
+  exit 1
+done
+
+exit 0

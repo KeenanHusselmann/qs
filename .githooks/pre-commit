@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# Two things that must be true of every commit made here.
+#
+# Like `pre-push`, neither is security — `--no-verify` goes straight past both. They are here so
+# that getting either wrong is a decision rather than an accident, at the moment it is cheap.
+
+# ── 1. The author is the work account, not a personal one ──────────────────────────────────
+#
+# This repository is pushed as `KeenanHusselmannX4O` and every one of its first 162 commits was
+# *authored* as `KeenanHusselmann <keenan.husselmann39@gmail.com>` — the push and the authorship
+# disagreeing, which nothing in git objects to.
+#
+# It is not cosmetic. Vercel refuses a git-triggered deploy whose commit author is not linked to a
+# Vercel account — "Deployment Blocked: KeenanHusselmann does not have a Vercel account linked to
+# their GitHub account" — and `scripts/deploy.mjs` exists mostly to park `.git` so Vercel cannot
+# read the author at all. The authorship is also simply wrong: this is X4O's work.
+#
+# The address is the account's GitHub noreply form, derived from its numeric id, so GitHub always
+# attributes it to KeenanHusselmannX4O and no personal address is published. Raymond's commits
+# already use the same form.
+EXPECTED_EMAIL="260871020+KeenanHusselmannX4O@users.noreply.github.com"
+ACTUAL_EMAIL=$(git config user.email)
+
+if [ "$ACTUAL_EMAIL" != "$EXPECTED_EMAIL" ]; then
+  cat >&2 <<REFUSAL
+
+  This commit would be authored as: $ACTUAL_EMAIL
+
+  This repository commits as KeenanHusselmannX4O. Your global git identity is a personal
+  account, and a commit authored by it is attributed to the wrong person and blocks a
+  git-triggered Vercel deploy.
+
+  Set it for this repository only — your global identity is left alone:
+
+    git config --local user.name  "KeenanHusselmannX4O"
+    git config --local user.email "$EXPECTED_EMAIL"
+
+REFUSAL
+  exit 1
+fi
+
+# ── 2. The lockfile still installs on the platform that builds it ──────────────────────────
+#
+# CI catches this and it caught it for days without anybody reading it: `npm ci` failed at the
+# first step, the failure read as a hundred missing packages rather than "written on the wrong
+# operating system", and the gate never reached the step that counts serverless functions.
+#
+# The cause is ordinary and constant: this repo is developed on Windows and built on Linux, and an
+# `npm install` here silently prunes the Linux-only optional packages out of the lockfile. It is
+# not a mistake somebody makes once — it is what npm does every time.
+#
+# Only when the lockfile is part of this commit: a commit that does not touch it cannot break it,
+# and a hook that runs on every commit regardless is a hook people disable.
+if git diff --cached --name-only | grep -qx "package-lock.json"; then
+  node scripts/check-lockfile.mjs || exit 1
+fi

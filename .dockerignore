@@ -1,0 +1,47 @@
+# What must not enter the build context.
+#
+# ── fixtures/ is the one that matters ─────────────────────────────────────────────────────
+#
+# It holds **real client documents** from a live scheme — a title deed, a brief, a priced cost
+# plan. README says the repository stays private until they are anonymised. An image is a far
+# looser thing than a private repository: it gets pushed to a registry, pulled onto build agents,
+# and cached in layers that outlive the tag. None of that is a place for a client's title deed.
+#
+# Everything else here is either a secret, a build artefact, or weight.
+
+# Secrets. `.env.example` is the only one that may travel.
+.env
+.env.*
+!.env.example
+
+# Real client data (README: "the repository stays private until they are anonymised").
+fixtures/
+
+# Rebuilt inside the image; copying them in is slower and risks a host/container mismatch on
+# native modules.
+node_modules/
+.next/
+.vercel/
+.storage/
+
+# History and CI. A layer holding the whole repository history is weight nobody unpacks.
+.git/
+.github/
+.githooks/
+
+# The browser suites drive a running server from outside it — they are never in the image, and
+# puppeteer's bundled Chromium would double its size if they were.
+checks/
+test-results/
+
+# Editor and OS noise.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Documentation. Read in the repository, not shipped to production.
+*.md
+!README.md
+design/
+docs/

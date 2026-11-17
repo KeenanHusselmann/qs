@@ -1,0 +1,271 @@
+# The gate, run by a machine instead of by a habit.
+#
+# ── Why this exists ────────────────────────────────────────────────────────────────────────
+#
+# One person with a strict habit is a gate. Two people are not: "everything green before a commit"
+# is a claim about somebody's laptop, and the person who carries the deploy has no way to check it
+# short of running the whole thing again. So the same five commands run here, on every push and
+# every pull request, and the answer is on the pull request before anybody reads the diff.
+#
+# ── This does not touch the twelve-function cap ────────────────────────────────────────────
+#
+# Worth saying plainly, because it is the first thing anybody familiar with this repository will
+# worry about: GitHub Actions are not Vercel serverless functions. Nothing here is deployed and
+# nothing here counts. The count is still twelve of twelve and is still measured by
+# `vercel build && npm run functions` on a machine with a Vercel token — see `functions` below.
+#
+# ── The browser suites need a real database and a real server ──────────────────────────────
+#
+# They are the half of this gate that finds things the unit tests cannot, so they run: a Postgres
+# service on 5434 to match `.env.example`, migrations from the build, `next dev` in the background,
+# and puppeteer against it. The fixtures are in the repository, so nothing here needs a model key —
+# no suite in `checks/` reads one, and the only paid suite (`check:run-live`) is deliberately not
+# run here.
+
+name: gate
+
+on:
+  push:
+    branches: [platform]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch makes the first run pointless. Cancel it rather than queue it.
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qs_platform
+        # 5434 on the host, matching `.env.example` and every developer's local container, so the
+        # database URL below is the one a person would already have.
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5434/qs_platform?sslmode=disable
+      # Test credentials for a throwaway database. Not secrets: the account exists only inside this
+      # job, and a real one would have to be a repository secret to be usable at all.
+      SESSION_SECRET: ci-session-secret-at-least-32-characters-long
+      DEV_USER_EMAIL: qs@example.com
+      DEV_USER_PASSWORD: ci-password
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Before `npm ci`, because `npm ci` is where a Windows-written lockfile fails and its error
+      # says nothing about the cause. This job went red here and stayed red, so it never reached the
+      # step that counts serverless functions — and nobody could see whether a deploy still fit
+      # inside the cap. The guard names the problem and the one command that fixes it.
+      - name: the lockfile still installs on Linux
+        run: node scripts/check-lockfile.mjs
+
+      - run: npm ci
+
+      # The browser suites read `.env.local` from disk — `readEnv()` in checks/helpers.mjs, which
+      # exists because `vercel env pull` quotes every value and a hand-rolled parser got it wrong in
+      # twelve suites at once. So CI writes the file a developer would have, rather than the suites
+      # growing a second way to find their configuration.
+      - name: write .env.local
+        run: |
+          cat > .env.local <<EOF
+          DATABASE_URL=$DATABASE_URL
+          SESSION_SECRET=$SESSION_SECRET
+          DEV_USER_EMAIL=$DEV_USER_EMAIL
+          DEV_USER_PASSWORD=$DEV_USER_PASSWORD
+          EOF
+
+      # ── The cheap half. Fails in seconds and fails most often. ──────────────────────────
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: lint
+        run: npm run lint
+
+      - name: unit tests
+        run: npm test
+
+      - name: every criterion is filed somewhere a person can reach
+        run: node scripts/check-modules.mjs
+
+      # ARC-005: only src/lib/egress may reach an outside host or import a vendor SDK, so nothing can
+      # send client data past the purpose rules, the personal-information filter and the ledger.
+      - name: nothing leaves except through the egress gateway
+        run: node scripts/check-egress.mjs
+
+      # ── The build, which is also the migration ──────────────────────────────────────────
+      #
+      # `npm run build` runs `scripts/migrate.mjs` first, so this is where a migration that is not
+      # replayable stops being somebody's problem later. It runs against the throwaway database
+      # above and can reach nothing else.
+      - name: build (migrations run first)
+        run: npm run build
+
+      # ── The browser suites ──────────────────────────────────────────────────────────────
+      - name: start the dev server
+        run: |
+          npm run dev > /tmp/dev.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "dev server up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "dev server never answered /api/health"; cat /tmp/dev.log; exit 1
+
+      # ── Chrome's sandbox, rather than turning it off ────────────────────────────────────
+      #
+      # Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor, and Chrome's zygote
+      # refuses to start without them: "No usable sandbox!". The workaround Chrome itself suggests
+      # is --no-sandbox, and it calls that living dangerously.
+      #
+      # It would also mean editing every suite, or threading a launch flag through helpers.mjs, so
+      # that the browser CI drives is not the browser a developer drives. The suites are the same in
+      # both places and the runner is the thing that differs, so the runner is what changes.
+      - name: let Chrome have its sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      # The count is asserted, never echoed. A suite that stops being run is a suite that passes by
+      # not existing, and `&&` between twenty commands hides that perfectly.
+      #
+      # It is a literal, so **adding a suite fails this job until the number is raised** — which is
+      # the point. The alternative is counting the suites in `npm run check` and comparing that with
+      # itself, which would pass whatever happened to be in there.
+      - name: browser suites
+        run: |
+          set -o pipefail
+          npm run check 2>&1 | tee /tmp/check.log
+          GREEN=$(grep -c "All checks passed" /tmp/check.log)
+          echo "suites green: $GREEN"
+          # 39 since 16 Nov 2026: the work, programme, claims, site and value suites went with their pages.
+          test "$GREEN" = "39"
+
+      - name: dev server log
+        if: failure()
+        run: tail -100 /tmp/dev.log || true
+
+  # ── The one check this cannot do for itself ────────────────────────────────────────────────
+  #
+  # `npm run functions` counts the `.func` directories `vercel build` produces, and `vercel build`
+  # needs a token and a linked project. Without VERCEL_TOKEN in the repository's secrets this job
+  # skips — loudly, in the run's summary, rather than silently passing.
+  #
+  # It matters more than its size suggests: the app sits at exactly twelve of twelve, and the
+  # thirteenth route does not fail the build. It deploys, and production carries on serving the
+  # previous version.
+  functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # `secrets` is not one of the contexts a step's `if` may read, so whether the token exists is
+    # decided once here, where job-level `env` may read it, and tested as an ordinary string below.
+    env:
+      HAS_VERCEL: ${{ secrets.VERCEL_TOKEN != '' }}
+      # ── Why this job has a database of its own ──────────────────────────────────────────
+      #
+      # `vercel build` runs `npm run build`, and the first thing that does is migrate. The
+      # obvious way to give the CLI its project — `vercel pull` — also fetches the project's
+      # environment variables, and this project's DATABASE_URL is the Neon instance production
+      # serves. That would migrate a client's live database on every pull request, before
+      # anybody had read the migration.
+      #
+      # So: no pull. VERCEL_ORG_ID and VERCEL_PROJECT_ID are what the CLI actually needs to
+      # know which project this is, and the database below is a container that exists for
+      # ninety seconds. Set explicitly as UNPOOLED too, because that is the variable
+      # scripts/migrate.mjs prefers, and a guard that only covers the second choice is not one.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5434/qs_platform?sslmode=disable
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5434/qs_platform?sslmode=disable
+      SESSION_SECRET: ci-session-secret-at-least-32-characters-long
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qs_platform
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: no token, no count
+        if: env.HAS_VERCEL != 'true'
+        run: |
+          echo "### Function count not measured" >> $GITHUB_STEP_SUMMARY
+          echo "VERCEL_TOKEN is not set on this repository, so \`vercel build\` cannot run here." >> $GITHUB_STEP_SUMMARY
+          echo "The app sits at **12 of 12** functions and the next route added breaks the deploy" >> $GITHUB_STEP_SUMMARY
+          echo "silently. Run \`vercel build && npm run functions\` before deploying." >> $GITHUB_STEP_SUMMARY
+
+      - name: count the functions this would create
+        if: env.HAS_VERCEL == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm ci
+
+          # ── Pull the project settings, then defuse them ──────────────────────────────
+          #
+          # `vercel build` will not run without them: "No project settings found locally."
+          # So the pull happens — and everything that could point this build at something
+          # real is stripped out of the file it writes, before the build reads it.
+          #
+          # What is removed: every DATABASE_*, POSTGRES_*, PG* and NEON_* variable, because
+          # `npm run build` migrates and this project's real one is the instance production
+          # serves; and BLOB_READ_WRITE_TOKEN, because a runner counting functions has no
+          # business holding write access to a client's documents.
+          npx vercel pull --yes --environment=preview --non-interactive --token "$VERCEL_TOKEN"
+
+          ENV_FILE=.vercel/.env.preview.local
+          grep -viE '^(DATABASE|POSTGRES|PG[A-Z]*=|NEON|BLOB_READ_WRITE)' "$ENV_FILE" > "$ENV_FILE.safe"
+          mv "$ENV_FILE.safe" "$ENV_FILE"
+          echo "DATABASE_URL=$DATABASE_URL" >> "$ENV_FILE"
+          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL" >> "$ENV_FILE"
+
+          # Names only, never values. If a database variable ever survives the strip above,
+          # this is where somebody sees it — before wondering why production drifted.
+          echo "--- environment this build will see ---"
+          cut -d= -f1 "$ENV_FILE" | sort
+          echo "---------------------------------------"
+
+          node -e "const u=new URL(process.env.DATABASE_URL);console.log('migrating against',u.hostname+u.pathname)"
+
+          npx vercel build --token "$VERCEL_TOKEN" --non-interactive
+          npm run functions | tee /tmp/functions.log
+
+          {
+            echo "### Serverless functions"
+            echo '```'
+            cat /tmp/functions.log
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY

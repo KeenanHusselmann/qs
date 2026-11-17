@@ -1,0 +1,389 @@
+[
+  {
+    "id": "A1",
+    "area": "Sign in",
+    "title": "Signing in works",
+    "how": "Go to the platform address. Type your email and password. Click the sign-in button.",
+    "expected": "You land on the Portfolio page, and your name shows at the top right.",
+    "round1": "Pass",
+    "comment": "A pretty straight forward username and password tab that's familiar to all platforms."
+  },
+  {
+    "id": "A2",
+    "area": "Sign in",
+    "title": "A wrong password is refused",
+    "how": "Sign out. Try to sign in with the right email and a wrong password.",
+    "expected": "You stay on the sign-in page and it says the email and password do not match an account. Nothing else is shown.",
+    "round1": "Pass",
+    "comment": "Done as it should've"
+  },
+  {
+    "id": "A3",
+    "area": "Sign in",
+    "title": "Signing out works",
+    "how": "Click your name at the top right, then sign out.",
+    "expected": "You are returned to the sign-in page.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "A4",
+    "area": "Sign in",
+    "title": "A signed-out person sees nothing",
+    "how": "While signed out, paste a project link into the address bar and press Enter.",
+    "expected": "You are sent to the sign-in page. No project information is shown first.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "B1",
+    "area": "Getting around",
+    "title": "Every menu item opens",
+    "how": "Click each item in the left menu in turn: Overview, Portfolio, Projects, Process model, Policies, Contacts, Settings.",
+    "expected": "Each one opens its own page. Nothing shows an error page or a blank screen.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "B2",
+    "area": "Getting around",
+    "title": "The menu can be narrowed",
+    "how": "Click the collapse arrow at the bottom of the left menu, then refresh the page.",
+    "expected": "The menu shrinks to icons only, and it is still shrunk after the refresh.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "B3",
+    "area": "Getting around",
+    "title": "Unfinished items are honest",
+    "how": "Hover over the greyed-out menu items — Approvals, Benchmarks, Reports.",
+    "expected": "Each one says “Not built yet” and cannot be clicked. Nothing pretends to work.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "B4",
+    "area": "Getting around",
+    "title": "Search finds things quickly",
+    "how": "Press Ctrl+K. Type part of a project name. Press Enter on a result.",
+    "expected": "A search box opens, matching projects and steps are listed, and Enter opens the one chosen.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "C1",
+    "area": "Projects",
+    "title": "A project can be created",
+    "how": "Projects → Add project. Fill in the name, code and client, and work through the three steps.",
+    "expected": "The project is created and opens, and it is listed on the Projects page with its code and client.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "C2",
+    "area": "Projects",
+    "title": "The project menu appears",
+    "how": "Open the project.",
+    "expected": "The left menu now shows this project’s steps, grouped by stage — Set up, Cost planning, Measurement, and so on.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "C3",
+    "area": "Projects",
+    "title": "Project details can be changed",
+    "how": "In the project menu open Project Details. Change the client name and click Save changes.",
+    "expected": "The change is saved, and the new client name shows on the project.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "C4",
+    "area": "Projects",
+    "title": "A project can be archived",
+    "how": "On Project Details click Archive, then go back to Projects.",
+    "expected": "The project leaves the working list and is shown as archived. It is not deleted.",
+    "round1": "Fail",
+    "comment": "It did archive but once it's archived the project is hard to find. There's no clear \"Archived\" label almost as though it was deleted. I can't search for the project either. No trace"
+  },
+  {
+    "id": "D1",
+    "area": "Documents",
+    "title": "An empty project says so",
+    "how": "Open a brand-new project and go to Project Corpus.",
+    "expected": "It says there are no documents filed yet, and offers the way to import them.",
+    "round1": "Pass",
+    "comment": "Doesn't mention the word \"empty\" but it's easy to assume it's empty and it does give you a way to import the documents"
+  },
+  {
+    "id": "D2",
+    "area": "Documents",
+    "title": "Documents can be imported",
+    "how": "Import a folder of the project’s documents.",
+    "expected": "Every file is listed with the kind it was recognised as, and the import finishes without errors.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "D3",
+    "area": "Documents",
+    "title": "Unknown files are asked about, not guessed",
+    "how": "Include one file with an unclear name in the import.",
+    "expected": "That file is listed as still needing a kind, and asks you what it is instead of choosing for you.",
+    "round1": "Pass",
+    "comment": "asked me what kind of file it was"
+  },
+  {
+    "id": "D4",
+    "area": "Documents",
+    "title": "Documents reach the right steps",
+    "how": "After importing, open two or three steps in the project menu.",
+    "expected": "Each step lists the documents it needs, and the ones you filed are shown against them.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "D5",
+    "area": "Documents",
+    "title": "The original can be opened",
+    "how": "In Project Corpus, click a document’s name.",
+    "expected": "The original document opens in a new tab and is readable. The page behind it is not lost.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "D6",
+    "area": "Documents",
+    "title": "A document can be withdrawn",
+    "how": "In Project Corpus, withdraw one document, then open the step that used it.",
+    "expected": "It is gone from the corpus, and the step now says that document is missing.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "E1",
+    "area": "Running a step",
+    "title": "A step will not run without its documents",
+    "how": "Open a step whose documents have not been filed.",
+    "expected": "The run button is greyed out, and the page names exactly which documents are missing.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "E2",
+    "area": "Running a step",
+    "title": "Filing what is missing releases it",
+    "how": "File the documents it named, then return to the step.",
+    "expected": "The run button is now available.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "E3",
+    "area": "Running a step",
+    "title": "The step reads the documents",
+    "how": "Click the button that starts the step — for example “Extract the estimate inputs” — and wait for it to finish.",
+    "expected": "Figures appear one by one, and each one shows the document it came from.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "E4",
+    "area": "Running a step",
+    "title": "Every figure can be traced",
+    "how": "Click the source shown next to a figure.",
+    "expected": "The exact wording from the document is shown.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "E5",
+    "area": "Running a step",
+    "title": "Nothing is invented",
+    "how": "Look for a figure the documents do not state.",
+    "expected": "It says “Not stated” instead of showing a number.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "E6",
+    "area": "Running a step",
+    "title": "Your own figure wins",
+    "how": "Type your own figure over one the step proposed, click elsewhere on the page, then refresh.",
+    "expected": "Your figure is saved without pressing a save button, is marked as yours, and is still there after the refresh.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "F1",
+    "area": "Sign-off",
+    "title": "An incomplete step cannot be signed",
+    "how": "Leave one required figure empty and try to sign off.",
+    "expected": "Sign-off is refused, and it names the figure that is missing.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "F2",
+    "area": "Sign-off",
+    "title": "A complete step can be signed",
+    "how": "Fill in every required figure, then sign off.",
+    "expected": "The step shows “Signed off”, with your name and the date — for example 12 Aug 2026.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "F3",
+    "area": "Sign-off",
+    "title": "Signed figures are frozen",
+    "how": "Try to change a figure on the step you have just signed.",
+    "expected": "The change is refused. Signed figures cannot be edited.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "F4",
+    "area": "Sign-off",
+    "title": "The next step is released",
+    "how": "Before signing, open the step that follows — for example Cost Plan. Then sign the earlier step and open it again.",
+    "expected": "Before: it says it is waiting on the earlier step. After: it can be started, and it carries the signed figures through.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "G1",
+    "area": "Bill & pricing",
+    "title": "A bill can be drafted",
+    "how": "Open Bill of Quantities and run it.",
+    "expected": "Rows are produced, each with a description, a unit and a quantity.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "G2",
+    "area": "Bill & pricing",
+    "title": "Pricing shows the same bill",
+    "how": "Open Pricing.",
+    "expected": "The same rows are shown, and it states how many are still unpriced.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "G3",
+    "area": "Bill & pricing",
+    "title": "A rate works out correctly",
+    "how": "Type a rate on one row.",
+    "expected": "The amount equals the rate times the quantity, and the total at the bottom goes up by that amount.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "G4",
+    "area": "Bill & pricing",
+    "title": "Many rows can be priced at once",
+    "how": "Tick several rows, then apply a rate or a percentage to the selection.",
+    "expected": "Only the ticked rows change, and by the figure that was typed.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "H1",
+    "area": "Numbers & reports",
+    "title": "Nothing is shown before it is signed",
+    "how": "Open Portfolio while the project has nothing signed off.",
+    "expected": "No invented figures. Each empty tile names the step that would supply it, and links to that step.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "H2",
+    "area": "Numbers & reports",
+    "title": "Signed figures appear",
+    "how": "Open the project’s Dashboard after signing a step.",
+    "expected": "The figures shown are the ones that were signed, and nothing else.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "H3",
+    "area": "Numbers & reports",
+    "title": "The report can be issued",
+    "how": "Open the project’s report and download the PDF.",
+    "expected": "The PDF downloads, opens, and its figures match what is on the screen.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "H4",
+    "area": "Numbers & reports",
+    "title": "Money and dates read correctly",
+    "how": "Look at any money figure and any date on screen.",
+    "expected": "Money reads R 1 234 567,89 — rand, spaces, comma. Dates read 12 Aug 2026, never 08/12/26.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "I1",
+    "area": "Firm settings",
+    "title": "A contact can be added",
+    "how": "Contacts → add an organisation, with the person who answers there.",
+    "expected": "It is saved and shown under the right kind — client, supplier, and so on.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "I2",
+    "area": "Firm settings",
+    "title": "A duplicate is refused politely",
+    "how": "Add the same organisation a second time under the same kind.",
+    "expected": "It is refused with a plain message explaining why — not a technical error.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "I3",
+    "area": "Firm settings",
+    "title": "Firm figures can be changed",
+    "how": "Settings → change one figure and save it.",
+    "expected": "It saves, and the row now names you as the person who set it.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "I4",
+    "area": "Firm settings",
+    "title": "A wrong figure is refused",
+    "how": "Settings → enter a figure with the decimal in the wrong place, for example 950 instead of 9,5.",
+    "expected": "It is refused with a message, and the old figure stays.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "I5",
+    "area": "Firm settings",
+    "title": "Reference pages open",
+    "how": "Open Policies, then Process model.",
+    "expected": "Both open and can be read.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "J1",
+    "area": "General",
+    "title": "It fits the screen",
+    "how": "Work through three or four pages on a normal laptop screen.",
+    "expected": "Nothing overlaps, nothing is cut off, and there is no sideways scrolling.",
+    "round1": "Pass",
+    "comment": ""
+  },
+  {
+    "id": "J2",
+    "area": "General",
+    "title": "Nothing shows a raw error",
+    "how": "Through the whole test, watch for anything that looks technical.",
+    "expected": "No error codes, no stack traces, no blank white pages at any point.",
+    "round1": "Pass",
+    "comment": ""
+  }
+]

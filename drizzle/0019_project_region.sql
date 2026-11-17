@@ -1,0 +1,28 @@
+-- Where the job is — PLATFORM.md §4.4, §6.3.
+--
+-- ── The gap the rate library exposed ─────────────────────────────────────────────────────────
+--
+-- A project recorded its name, its code, its client and the stages it runs, and nothing about
+-- where it is. That was tolerable while every figure came out of the project's own documents. It
+-- stopped being tolerable the moment a bill could be priced from the firm's rate library, because
+-- **a rate library is regional**: `rates.region` holds one of the nine provinces, and the same
+-- item genuinely costs different money in Gauteng and the Western Cape.
+--
+-- Without this column `matchRates` had nowhere to get a province from, so the pricing panel asked
+-- for one on every visit — a question the project could have answered once, put to a reader every
+-- time they opened the screen. §2.6's rule cuts the other way here: this is not a preference the
+-- platform failed to decide, it is a fact about the job that nobody had been asked for.
+--
+-- ── Nullable, and it stays nullable ──────────────────────────────────────────────────────────
+--
+-- A project created before this column existed did not state a province, and the honest reading of
+-- that silence is "nobody said", not "national". `ratesInForce` already treats a rate with no
+-- region as eligible everywhere, so a project with no region prices from the whole library and the
+-- screen says which province it is using. Backfilling a guess would put a province on a hundred
+-- jobs that nobody chose, and every rate matched afterwards would carry it.
+--
+-- Text rather than an enum, matching `rates.region`: the nine provinces are a fact about South
+-- Africa and live in `lib/rates.ts` where both halves of the app can read them, and a check
+-- constraint here would be that list written a third time.
+
+alter table "projects" add column "region" text;

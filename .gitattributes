@@ -1,0 +1,36 @@
+# Binary means binary — byte for byte, in and out.
+#
+# Without this, git classifies a .pdf as text on Windows and rewrites its line endings on checkout.
+# Every byte offset in the PDF's xref table then points one byte early per line, and what lands in
+# the working tree is a file still called .pdf that no longer opens. The commit looks clean; the
+# clone is broken, and only on one platform.
+#
+# Caught on `fixtures/title-deed.pdf`, which exists so the document viewer can be tested against a
+# real PDF rather than a text file pretending to be one.
+
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+
+# A shell script keeps LF endings wherever it is checked out.
+#
+# `core.autocrlf=true` is set on the Windows machine this is developed on, and without this the
+# pre-push hook is checked out with CRLF — `#!/bin/sh` followed by a carriage return is a script the
+# shell refuses with "bad interpreter", so the guard silently stops guarding on exactly the platform
+# it was written on. Same failure shape as the PDF above: the commit looks clean and the clone is
+# broken on one platform only.
+.githooks/* text eol=lf
+*.sh        text eol=lf
+
+# Same rule, same reason, for the container. A Dockerfile checked out with CRLF breaks line
+# continuations on some daemons, and the `sh -c` entrypoint inside it is a shell script by another
+# name — a stray CR at the end of a command is a character the shell tries to run.
+Dockerfile  text eol=lf
+compose.yml text eol=lf

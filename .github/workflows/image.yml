@@ -1,0 +1,111 @@
+# Publish the container image, so somebody can run this without the repository.
+#
+# ── Why a workflow and not `docker push` from a laptop ────────────────────────────────────────
+#
+# Pushing by hand needs a personal token carrying `write:packages`, minted for one person, pasted
+# into one shell, and impossible to audit afterwards. `GITHUB_TOKEN` is scoped to this repository,
+# expires with the run, and needs nobody to hold anything. It is also the only version of this that
+# is repeatable — an image built on a laptop is built from whatever that laptop had checked out.
+#
+# ── And it is what a deploy will use ──────────────────────────────────────────────────────────
+#
+# PLATFORM.md §13.1 chose a single container. Whatever runs it — Azure Container Apps, Railway, a
+# VPS — pulls an image from a registry. This is that step, and it exists now because somebody needs
+# to run the platform on their own infrastructure **without being given the source**: no documents,
+# no `fixtures/`, no client scheme. `.dockerignore` keeps all of that out of the image.
+#
+# ── The build needs no database, and that is not an accident ──────────────────────────────────
+#
+# `npm run build` migrates first, so an image built that way could not be produced without write
+# access to production. The Dockerfile runs `next build` alone and the entrypoint migrates at start,
+# which is what lets this job run with no secrets and no network to any database at all.
+
+name: image
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Extra tag to publish alongside the commit SHA (e.g. rodney-test)"
+        required: false
+        default: ""
+  push:
+    branches: [platform]
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      # The only elevated permission here, and it is scoped to this repository's packages.
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: sign in to the registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: what to call it
+        id: tags
+        run: |
+          # Lowercase: a registry path must be, and the org is not.
+          repo=$(echo "${{ env.IMAGE }}" | tr '[:upper:]' '[:lower:]')
+          {
+            echo "repo=$repo"
+            printf 'list=%s:%s\n' "$REGISTRY/$repo" "${{ github.sha }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # The SHA is the tag that always means one exact thing. `latest` is a convenience and
+          # `${{ inputs.tag }}` is for handing somebody a name they can remember.
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.tags.outputs.repo }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.tags.outputs.repo }}:latest
+            ${{ inputs.tag != '' && format('{0}/{1}:{2}', env.REGISTRY, steps.tags.outputs.repo, inputs.tag) || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: say where it went
+        run: |
+          image="${{ env.REGISTRY }}/${{ steps.tags.outputs.repo }}"
+          {
+            echo "### Image published"
+            echo
+            echo '```'
+            echo "$image:${{ github.sha }}"
+            echo "$image:latest"
+            [ -n "${{ inputs.tag }}" ] && echo "$image:${{ inputs.tag }}"
+            echo '```'
+            echo
+            echo "It needs **PostgreSQL 16** and these variables:"
+            echo
+            echo '| | |'
+            echo '|---|---|'
+            echo '| `DATABASE_URL` | Postgres. The container migrates it at start |'
+            echo '| `SESSION_SECRET` | 32+ characters, any random string |'
+            echo '| `DEV_USER_EMAIL` / `DEV_USER_PASSWORD` | The whole of auth for now — there is no user table yet |'
+            echo '| `STORAGE_DIR` | Defaults to `/data`. **Mount a volume there** or filed documents die with the container |'
+            echo
+            echo "Health: \`GET /api/health\` returns \`{\"status\":\"ok\"}\` and sits in front of the session gate."
+          } >> "$GITHUB_STEP_SUMMARY"

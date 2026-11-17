@@ -1,0 +1,62 @@
+# The whole platform, locally, the way it runs in production.
+#
+# `npm run dev` is the fast loop and is not this. This is the container PLATFORM.md §13.1 chose,
+# with the database beside it — what a deploy actually is, runnable on a laptop. Two things are
+# only true here and not under `next dev`: the standalone build (so a missing static asset shows up
+# as a 404 rather than never), and migrations running at **start** rather than at build.
+#
+#   docker compose up -d --build
+#   docker compose logs -f app
+#   docker compose down          # add -v to drop the database and the documents too
+#
+# Postgres is published on **5434** to match `.env.example`, so the browser suites and any local
+# tooling reach the same database the container is using.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: qs_platform
+    ports:
+      - "5434:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      # The app migrates the moment it starts, so it must not start before Postgres can be
+      # connected to. Without this the first boot races and dies on ECONNREFUSED.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d qs_platform"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    # Your own secrets, from the file you already keep. Compose reads `.env` by default and this
+    # project's is `.env.local`, so it is named. Nothing here is shared between developers —
+    # `.env.example` explains why each value is yours.
+    #
+    # `vercel env pull` writes every value **quoted**, and quotes that survive into a container are
+    # the bug this repository has hit twice: a quoted address fails the browser's own validation and
+    # the login form refuses to submit, silently. Compose strips them — verified, not assumed.
+    env_file:
+      - .env.local
+    environment:
+      # Overrides `env_file` (compose gives `environment` precedence), which is what we want:
+      # `.env.local` points at the published 5434 for host tooling, while inside the compose network
+      # the database is `db:5432`.
+      DATABASE_URL: postgresql://postgres:devpassword@db:5432/qs_platform?sslmode=disable
+      DATABASE_URL_UNPOOLED: postgresql://postgres:devpassword@db:5432/qs_platform?sslmode=disable
+    volumes:
+      # Documents. A named volume rather than the container filesystem, because the container's
+      # does not survive a redeploy — which is exactly how originals were lost on Vercel.
+      - documents:/data
+
+volumes:
+  db:
+  documents:

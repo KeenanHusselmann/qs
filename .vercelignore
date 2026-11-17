@@ -1,0 +1,63 @@
+# What must not be uploaded when `npm run deploy` ships this directory to Vercel.
+#
+# ── Why this file has to exist ─────────────────────────────────────────────────────────────
+#
+# The Vercel CLI does not read .gitignore. Without this file it skips only its own short list
+# (.git, .next, node_modules, .env.local, .vercel …) and uploads everything else as the
+# deployment's source. Read in the CLI itself (getVercelIgnore, vercel 60.1.3), not assumed.
+#
+# And `scripts/deploy.mjs` renames .git to .git-parked for the duration – so the CLI's own .git
+# rule never applies, and without the line below the whole repository history went up with every
+# deploy. So did fixtures/ (real client documents), testing/ and the 474 MB local document store.
+# None of it was served, but all of it sat in the deployment's source files, which is client data
+# copied somewhere it has no reason to be (ARC-005: send the least that is needed).
+#
+# Same reasoning as .dockerignore, which keeps the same things out of the container image.
+
+# The repository history, under the name deploy.mjs parks it as.
+.git-parked/
+
+# Real client data and test packs (README: the repository stays private until anonymised).
+fixtures/
+testing/
+
+# The local document store and local tooling – development only; production uses Blob.
+.storage/
+.e2e-tmp/
+.claude/
+.agents/
+.qodo/
+test-results/
+
+# Secrets. The CLI already skips .env.local; nothing else of this kind belongs in a build either.
+.env
+.env.*
+
+# CI, hooks and the browser suites – they drive a running server from outside; the build needs none.
+.github/
+.githooks/
+checks/
+
+# Documentation read in the repository, not built.
+HANDOFF.md
+PLATFORM.md
+CONTRIBUTING.md
+design/
+docs/
+
+# Loose documents at the root – the practice's own working papers get saved here (a BOQ review, a
+# cost-comparison memo, a mapping workbook were, the day this was written). Nothing the build reads
+# lives at the root in these formats, so none of them may go up, whatever they are called.
+/*.md
+/*.pdf
+/*.xls
+/*.xlsx
+/*.xlsm
+/*.csv
+/*.doc
+/*.docx
+/*.ppt
+/*.pptx
+/*.zip
+/*.dwg
+/*.dxf
